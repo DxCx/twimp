@@ -63,7 +63,9 @@ class SimplePublishPlayApp(object):
 
     def play(self, net_stream, stream_name, start=-2, duration=-1,
              reset=True):
-        assert start == -2, 'only live streams'
+        # rtmpdump (commandline client) sends -1000 for live streams
+        # flash based clients (flowplayer) send -2 instead
+        assert start in (-2, -1000), 'only live streams'
 
         # ignoring duration and reset for now...
 
