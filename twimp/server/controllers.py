@@ -331,7 +331,7 @@ class RTMPPlayer(Controller):
 
 
 class DefaultCachePolicy(object):
-    def __init__(self, grpos_range=3000, h264_frames=64):
+    def __init__(self, grpos_range=0, h264_frames=0):
         # *_params: { type => (grpos range, frames, flag mask) }
         self.default_params = {chunks.MSG_VIDEO: (grpos_range, None, 0),
                                chunks.MSG_AUDIO: (grpos_range, None, 0)}
