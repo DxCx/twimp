@@ -91,7 +91,7 @@ class SimplePublishPlayApp(object):
         d.addCallback(got_streamgroup)
         return d
 
-    def publish(self, net_stream, stream_name, publish_type):
+    def publish(self, net_stream, stream_name, publish_type='live'):
         publish_type = 'live'
         if publish_type != 'live':
             # this app is only for live streams
