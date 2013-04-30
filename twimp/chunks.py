@@ -161,7 +161,7 @@ class Demuxer(object):
                 s = yield 1     # need 1 byte to read "basic header"
 
             htype, csid = read_header_head(s)
-
+            a = csid
             csid_sel = min(csid, 2)
             head_size = _sizes_1[csid_sel] + _sizes_2[htype]
 
@@ -197,17 +197,27 @@ class Demuxer(object):
             else:
                 (_time_1, m_time, _size_1,
                  m_size, m_type) = _s_time_size_type.unpack(s.read(7))
+                bla = m_time
+                bla1 = m_size
                 m_time += _time_1 << 8
                 m_size += _size_1 << 8
                 if htype == 0:
                     m_msid, = _s_ulong_l.unpack(s.read(4))
 
             if m_time == 0x00ffffff or m_time is None and m_time_ext:
+                print 'FUCKING EXTENDED mt:%s ext:%s size:%s a:%s csid:%s '\
+                        'htype:%s hs:%s' % (m_time, m_time_ext,
+                        m_size, a, csid, htype, head_size)
+#                import pdb; pdb.set_trace()
                 if len(s) < 4:
                     s = yield 4 # 4 bytes of "extended timestamp"
                 m_time, = _s_ulong_b.unpack(s.read(4))
+#                if m_size is not None:
+#                    m_size += 4
+                m_time = None
 
             h = Header(csid, m_time, m_size, m_type, m_msid)
+
 
             # fill header if cached entry was found earlier
             if c_h:
@@ -295,7 +305,13 @@ def encode_comp_header(h_type, cs_id, time, size, msg_type, ms_id):
         write_time = time
         if time >= 0xffffff:
             write_time = 0xffffff
-            h4 = _s_ulong_b.pack(time)
+            if time > 0xffffffff:
+                time -= 0xffffffff
+            try:
+                h4 = _s_ulong_b.pack(time)
+            except Exception, e:
+                print 'BAH', h_type, time
+                h4 = ''
         else:
             write_time = time
             h4 = ''
