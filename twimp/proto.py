@@ -258,11 +258,15 @@ class DispatchProtocol(BaseProtocol):
 
         handler, make_args = entry
 
-        args = make_args(header, body)
+        try:
+            args = make_args(header, body)
+        except amf0.DecoderError, e:
+            print 'DECODE EREROR', e, header, body
+            return
         handler(*args)
 
     def unknownMessageType(self, header, body):
-        pass
+        print 'ERR UNKNOWN MESSAGE %s %s' % (header, body)
 
     def doCommand(self, ts, ms_id, args):
         pass
