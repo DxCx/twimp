@@ -124,8 +124,9 @@ class SimpleAppClientProtocol(BaseClientProtocol):
                                           flashVer=CLIENT_VERSION,
                                           tcUrl=app_url,
                                           objectEncoding=0)
-        log.debug('invoking connect(%r)', params)
-        d = self.callRemote(0, 'connect', params, {})
+        extra_params = self._app.get_connect_extra()
+        log.debug('invoking connect(%r, extra=%r)' % (params, extra_params))
+        d = self.callRemote(0, 'connect', params, *extra_params)
         d.addErrback(_translate_failure)
         d.addCallbacks(_connected, self._connect_call_failed)
         d.addErrback(self._failed_disconnect)
@@ -449,6 +450,9 @@ class BaseClientApp(object):
 
     def get_connect_params(self):
         return {}
+
+    def get_connect_extra(self):
+        return tuple()
 
     def connectionLost(self, reason):
         pass

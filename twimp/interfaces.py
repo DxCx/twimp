@@ -72,6 +72,9 @@ class IClientApp(Interface):
     def get_connect_params():
         pass
 
+    def get_connect_extra(self):
+        pass
+
     def connectionLost(reason):
         pass
 
