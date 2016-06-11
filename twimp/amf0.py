@@ -193,12 +193,13 @@ class UndefinedType(object):
         return 'undefined'
 undefined = UndefinedType()
 
-
 class Object(OrderedObject):
     """AMF Object class, with chronological attribute ordering, for
     increased compatibility.
     """
 
+class SerializedString(str):
+    """AMF SerilizedString (String without a type)"""
 
 class Reference(object):
     def __init__(self, index):
@@ -378,6 +379,36 @@ def _decode(s, type_dict=decoders):
 
     return values
 
+def _decode_so_update(s):
+    obj_name = _decode_string(s)
+    version = _s_ulong.unpack(s.read(4))[0]
+    flags = s.read(8)[0]
+    events = []
+    while True:
+        event = {}
+        try:
+            event['type'] = _decode_marker(s)
+        except VecBufEOB:
+            break # We are good.
+
+        so_body_size = _s_ulong.unpack(s.read(4))[0]
+        event['data'] = ''
+        if so_body_size:
+            event['data'] = s.read(so_body_size)
+        events.append(event)
+
+    return {'obj_name': obj_name, 'version': version, 'flags': flags, 'events': events}
+
+def _encode_so_update(s, obj_name, version='\x00\x00\x00\x00', flags='\x00\x00\x00\x00\x00\x00\x00\x00', events=None):
+    _encode_serialized_string(s, obj_name)
+    s.write(version)
+    s.write(flags)
+    if events is None:
+        return
+
+    for event in events:
+        s.write(_s_m_longlen.pack(event['type'], len(event['data'])))
+        s.write(event['data'])
 
 ##
 # encoder part
@@ -386,6 +417,7 @@ def _decode(s, type_dict=decoders):
 # the following structs are not generic enough to be put in primitives...
 _s_m_empty = struct.Struct('>B')
 _s_m_len = struct.Struct('>BH')
+_s_m_serialed_string_len = struct.Struct('>H')
 _s_m_longlen = struct.Struct('>BL')
 _s_m_double = struct.Struct('>Bd')
 _s_m_boolean = struct.Struct('>BB')
@@ -393,12 +425,17 @@ _s_m_reference = _s_m_len
 _s_m_time_tz = struct.Struct('>Bdh')
 _s_endmarker = struct.Struct('>HB')
 
-
 def _encode_number(s, value):
     s.write(_s_m_double.pack(MARK_NUMBER, value))
 
 def _encode_boolean(s, value):
     s.write(_s_m_boolean.pack(MARK_BOOL, 1 if value else 0))
+
+def _encode_serialized_string(s, value):
+    length = len(value)
+    assert length < 0xffff, "String is too long for serialized string."
+    s.write(_s_m_serialed_string_len.pack(length))
+    s.write(value)
 
 def _encode_string(s, value):
     length = len(value)
@@ -468,6 +505,7 @@ object_encoders = {
     long: _encode_number,
     bool: _encode_boolean,
     str: _encode_string,
+    SerializedString: _encode_serialized_string,
     buffer: _encode_string,
     unicode: _encode_unicode,
     Object: _encode_object,
@@ -535,6 +573,27 @@ def decode(data):
         return _decode(data)
     except VecBufEOB:
         raise DecoderError('Incomplete encoded data')
+
+def decode_so_update(data):
+    """Decode AMF0-encoded SO update packet.
+
+    @type data: VecBuf
+
+    @returns: list of objects
+    """
+    try:
+        return _decode_so_update(data)
+    except VecBufEOB:
+        raise DecoderError('Incomplete encoded data')
+
+def encode_so_update(obj_name, version='\x00\x00\x00\x00', flags='\x00\x00\x00\x00\x00\x00\x00\x00', events=None):
+    """Encode given Shard object structure values using AMF0.
+
+    @rtype: VecBuf
+    """
+    vb = VecBuf()
+    _encode_so_update(vb, obj_name, version, flags, events)
+    return vb
 
 def decode_one(data):
     """Decode a single value from AMF0-encoded buffer of data.

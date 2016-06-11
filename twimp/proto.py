@@ -241,6 +241,9 @@ class DispatchProtocol(BaseProtocol):
             return header.abs_time, header.ms_id, amf0.decode(body)
         def data_args(header, body):
             return header.type, header.abs_time, header.ms_id, body
+        def object_args(header, body):
+            decoded = amf0.decode_so_update(body)
+            return header.abs_time, header.ms_id, decoded['obj_name'], decoded['events']
 
         # { type => (handler, make_args) }
         self.msg_dispatch = {
@@ -248,6 +251,7 @@ class DispatchProtocol(BaseProtocol):
             const.RTMP_VIDEO: (self.doData, data_args),
             const.RTMP_DATA: (self.doMeta, amf_args),
             const.RTMP_COMMAND: (self.doCommand, amf_args),
+            const.RTMP_SHARED_OBJ: (self.doSharedObj, object_args),
             }
 
     def messageReceived(self, header, body):
@@ -267,6 +271,9 @@ class DispatchProtocol(BaseProtocol):
 
     def unknownMessageType(self, header, body):
         print 'ERR UNKNOWN MESSAGE %s %s' % (header, body)
+
+    def doSharedObj(self, ts, ms_id, obj_name, events):
+        pass
 
     def doCommand(self, ts, ms_id, args):
         pass

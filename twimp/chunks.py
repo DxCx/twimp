@@ -397,8 +397,15 @@ class SimpleChunkProducer(object):
     def stopProducing(self):
         pass
 
-
 (AMF_v0, AMF_v3) = range(2)
+
+SO_EVENT_TYPE_USE = 1
+SO_EVENT_TYPE_RELEASE = 2
+SO_EVENT_TYPE_CHANGE = 4
+SO_EVENT_TYPE_MESSAGE = 6
+SO_EVENT_TYPE_CLEAR = 8
+SO_EVENT_TYPE_DELETE = 9
+SO_EVENT_TYPE_USE_SUCCESS = 11
 
 (PROTO_SET_CHUNK_SIZE, PROTO_ABORT_MESSAGE, PROTO_ACK, PROTO_USER_CONTROL,
  PROTO_WINDOW_SIZE, PROTO_SET_BANDWIDTH, MSG_COMMAND, MSG_DATA, MSG_SO,
@@ -450,8 +457,8 @@ class Muxer(object):
 
     def _make_adhoc_csid(self, mt):
         # this is a simple, not an optimal implementation...
-        cs_id_r = 2
-        cs_id_t = 2
+        cs_id_r = 3
+        cs_id_t = 3
 
         if self._reserved_csids:
             cs_id_r = max(self._reserved_csids.values())
@@ -510,6 +517,8 @@ class Muxer(object):
             priority -= 0x10
             # ... and don't compress the header at all
             absolute = True
+        elif type_ is MSG_SO:
+            cs_id = 3
         else:
             mt = (ms_id, msg_type)
             # note, valid chunk stream id cannot be 0

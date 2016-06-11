@@ -29,7 +29,6 @@ from twimp.error import CallResultError, CallAbortedException
 from twimp.proto import DispatchProtocol, DispatchFactory
 from twimp.utils import ms_time_wrapped
 
-
 LOG_CATEGORY = 'dispatch'
 import twimp.log
 log = twimp.log.get_logger(LOG_CATEGORY)
@@ -180,6 +179,12 @@ class CommandDispatchProtocol(DispatchProtocol):
             self._cc_queue.callLater(0, self._handler_wrapper, handler_m,
                                      ts, ms_id, args[1:])
 
+    def doSharedObj(self, ts, ms_id, obj_name, events):
+        log.info('TODO: doSharedObj - CONT HERE')
+        log.info(obj_name)
+        log.info(events)
+        pass
+
     def _handler_wrapper(self, handler, ts, ms_id, args):
         # wrap in try/except...?
         handler(ts, ms_id, *args)
@@ -253,6 +258,10 @@ class CommandDispatchProtocol(DispatchProtocol):
         # similar to callRemote, except we don't expect any results
         return self._sendRemote(ms_id, cmd, args, kw, False)
 
+    def useSharedObject(self, ms_id, name):
+        events = [{'data': '', 'type': chunks.SO_EVENT_TYPE_USE}]
+        body = amf0.encode_so_update(name, events=events)
+        return self.muxer.sendMessage(0, chunks.MSG_SO, ms_id, body)
 
 class CommandDispatchFactory(DispatchFactory):
     protocol = CommandDispatchProtocol
