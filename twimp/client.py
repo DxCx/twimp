@@ -68,7 +68,7 @@ class SimpleAppClientProtocol(BaseClientProtocol):
         app_params = self._app.get_connect_params()
         factory_params = self.factory.get_connect_params()
 
-        params = amf0.Object(app_params)
+        params = amf0.Object({})
 
         for k, v in factory_params.items():
             setattr(params, k, v)
@@ -76,6 +76,8 @@ class SimpleAppClientProtocol(BaseClientProtocol):
         for k, v in kw.items():
             setattr(params, k, v)
 
+        for k, v in app_params.items():
+            setattr(params, k, v)
         return params
 
     def _connect_call_failed(self, failure):
