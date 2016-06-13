@@ -153,6 +153,16 @@ class SimpleAppClientProtocol(BaseClientProtocol):
         log.info('Bandwidth check done (estimated bandwidth: %r, latency: %r)',
                  bw, latency)
 
+        if self._app:
+            handler_m = None
+            if self._app:
+                handler_m = getattr(self._app, 'onBWDone', None)
+
+        if handler_m is None:
+            return
+
+        return handler_m(ts, ms_id, trans_id, _none, bw, latency)
+
     ##
     # FCPublish/FCUnpublish and complementary onFCPublish/onFCUnpublish
     # helpers and handlers
@@ -180,6 +190,15 @@ class SimpleAppClientProtocol(BaseClientProtocol):
                         ts, ms_id, info)
         self._events.dispatch('onFCUnpublish', info, miss_h=miss_handler)
 
+    def unknownCommandType(self, cmd, ts, msid, args):
+        handler_m = None
+        if self._app:
+            handler_m = getattr(self._app, 'command_%s' % (cmd,), None)
+
+        if handler_m is None:
+            return BaseClientProtocol.unknownCommandType(self, cmd, ts, msid, args)
+
+        self._cc_queue.callLater(0, self._handler_wrapper, handler_m, ts, msid, args)
 
 class SimpleAppClientFactory(BaseClientFactory):
     protocol = SimpleAppClientProtocol
