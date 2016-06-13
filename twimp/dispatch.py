@@ -22,6 +22,7 @@ from twisted.python import failure
 
 from twimp import amf0
 from twimp import chunks
+from twimp import const
 from twimp.error import ProtocolContractError, UnexpectedStatusError
 from twimp.error import CommandResultError
 from twimp.error import CallResultError, CallAbortedException
@@ -251,9 +252,12 @@ class CommandDispatchProtocol(DispatchProtocol):
         # similar to callRemote, except we don't expect any results
         return self._sendRemote(ms_id, cmd, args, kw, False)
 
-    def useSharedObject(self, ms_id, name):
-        events = [{'data': '', 'type': chunks.SO_EVENT_TYPE_USE}]
-        body = amf0.encode_so_update(name, events=events)
+    def useSharedObject(self, ms_id, name, persistance=False):
+        flags='\x00\x00\x00\x00\x00\x00\x00\x00'
+        events = [{'data': '', 'type': const.SO_EVENT_TYPE_USE}]
+        if persistance:
+            flags = '\x00\x00\x00\x02\x00\x00\x00\x00'
+        body = amf0.encode_so_update(name, flags=flags, events=events)
         return self.muxer.sendMessage(0, chunks.MSG_SO, ms_id, body)
 
 class CommandDispatchFactory(DispatchFactory):
