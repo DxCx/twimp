@@ -12,9 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 from zope.interface import Interface, Attribute
-
 
 # TODO: actually provide documentation!
 # TODO: let's have interfaces for everything! (O_o)
@@ -47,7 +45,6 @@ class IClientStream(Interface):
     def write_video(ts, data):
         pass
 
-
 class IMediaSource(Interface):
     def connect(stream):
         pass
@@ -60,7 +57,6 @@ class IMediaSource(Interface):
 
     def stop():
         pass
-
 
 class IClientApp(Interface):
     ##
@@ -105,12 +101,10 @@ class IClientApp(Interface):
     def failConnection(reason):
         pass
 
-
 class IBaseFactory(Interface):
     init_time = Attribute(
         'Time reference point for all connections made by this factory. '
         'A float, in seconds, as in time.time().')
-
 
 class IAppClientFactory(IBaseFactory):
     def get_connect_params():

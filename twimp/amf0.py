@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 """
 Action Message Format 0 handling library.
 
@@ -46,7 +45,6 @@ Implemented Python -> AMF0 type mapping:
   * afm0.XMLDocument -> xml document
 """
 
-
 import calendar
 import datetime
 import struct
@@ -57,7 +55,6 @@ from primitives import _s_double, _s_ushort, _s_ulong_b as _s_ulong
 from primitives import _s_date_tz
 
 from vecbuf import VecBuf, VecBufEOB
-
 
 # A UTC tzinfo class, temporarily here, until full support for
 # timezones is implemented...
@@ -127,7 +124,6 @@ class OrderedDict(DictMixin, object):
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self.items())
 
-
 class OrderedObject(OrderedDict):
     def __init__(self, other=None, **kw):
         # overriding __init__ completely!
@@ -170,14 +166,11 @@ class OrderedObject(OrderedDict):
         return '%s(%s)' % (self.__class__.__name__,
                            ', '.join(('%s=%r' % elt) for elt in self.items()))
 
-
-
 class DecoderError(ValueError):
     pass
 
 class EncoderError(ValueError):
     pass
-
 
 class UndefinedType(object):
     def __eq__(self, other):
@@ -217,14 +210,11 @@ class Reference(object):
     def __repr__(self):
         return '%s(%d)' % (self.__class__.__name__, self.index)
 
-
 class ECMAArray(OrderedDict):
     pass
 
-
 class XMLDocument(unicode):
     pass
-
 
 ##
 # decoder part
@@ -308,7 +298,6 @@ def _decode_typed_object(s):
 def _decode_unsupported(s):
     raise DecoderError('Unsupported unsupported')
 
-
 (MARK_NUMBER, MARK_BOOL, MARK_STRING, MARK_OBJECT, MARK_MOVIECLIP, MARK_NULL,
  MARK_UNDEFINED, MARK_REFERENCE, MARK_ECMA_ARRAY, MARK_OBJECT_END,
  MARK_STRICT_ARRAY, MARK_DATE, MARK_LONG_STRING, MARK_UNSUPPORTED,
@@ -352,7 +341,6 @@ decoders.update({
         # MARK_AVMPLUS_OBJECT: _decode_avmplus_object,
         })
 
-
 def _decode_single(s, type_dict=decoders):
     # not checking EOB on marker - decoding exactly one object
     marker = _decode_marker(s)
@@ -361,7 +349,6 @@ def _decode_single(s, type_dict=decoders):
         raise DecoderError('Unsupported marker 0x%02x' % marker)
 
     return decoder(s)
-
 
 def _decode(s, type_dict=decoders):
     values = []
@@ -557,7 +544,6 @@ def _encode_variable_name(s, name):
 
     _encode_property_name(s, value)
 
-
 ##
 # public interface
 #
@@ -607,7 +593,6 @@ def decode_one(data):
     except VecBufEOB:
         raise DecoderError('Incomplete encoded data')
 
-
 def encode(*args):
     """Encode given values using AMF0.
 
@@ -640,7 +625,6 @@ def encode_variable(name, value):
     _encode_variable_name(vb, name)
     _encode_single(vb, value)
     return vb
-
 
 __all__ = ['encode', 'decode', 'encode_variable', 'decode_variable',
            'DecoderError', 'EncoderError',

@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 import struct
 
 from twisted.internet import protocol
@@ -34,7 +33,6 @@ LOG_CATEGORY = 'proto'
 import twimp.log
 log = twimp.log.get_logger(LOG_CATEGORY)
 
-
 # twisted.internet.abstract.FileDescriptor does ''.join() on sequences
 # passed to writeSequence(), and that doesn't allow buffer objects -
 # so a quick workaround, for now...
@@ -44,7 +42,6 @@ def _fix_writeSequence(obj):
         return orig_writeSequence(semiflatten(seq))
     obj.writeSequence = writeSequence
     return orig_writeSequence
-
 
 class BaseProtocol(GeneratorWrapperProtocol):
     handshaker_class = Handshaker
@@ -108,13 +105,11 @@ class BaseProtocol(GeneratorWrapperProtocol):
         # print header, _ellip(body.read(len(body)).encode('hex'))
         pass
 
-
 class BaseFactory(Factory):
     protocol = BaseProtocol
 
     def __init__(self, init_time):
         self.init_time = init_time
-
 
 _s_uctrl_single = struct.Struct('>HL')
 
@@ -193,7 +188,6 @@ class UserControlDispatchDemuxer(Demuxer):
 
     def doUserControlUnknownType(self, header, evt_type, body):
         pass
-
 
 class DispatchProtocol(BaseProtocol):
     demuxer_class = UserControlDispatchDemuxer
@@ -287,7 +281,6 @@ class DispatchProtocol(BaseProtocol):
     def connectionLost(self, reason=protocol.connectionDone):
         self._cc_queue.cancel_all()
         BaseProtocol.connectionLost(self, reason)
-
 
 class DispatchFactory(BaseFactory):
     protocol = DispatchProtocol

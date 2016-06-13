@@ -12,12 +12,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 from primitives import _s_time_size_type, _s_time, _s_set_bw
 from primitives import _s_ulong_l, _s_ulong_b, _s_uchar, _s_ushort, _s_ushort_l
 from primitives import _s_double_uchar, _s_ext_csid
 import vecbuf
-
 
 class Header(object):
     def __init__(self, cs_id, time, size, type, ms_id, **kw):
@@ -64,17 +62,14 @@ def absolutize(h, base):
                    real_size=h.size, real_type=h.type, real_ms_id=h.ms_id)
     return abs_h
 
-
 class ChunkStreamParseError(ValueError):
     pass
 
 class ChunkStreamValueError(ValueError):
     pass
 
-
 _sizes_1 = [1, 2, 0]
 _sizes_2 = [11, 7, 3, 0]
-
 
 def read_header_head(s):
     # v = _s_uchar.unpack(s.read(1))
@@ -218,7 +213,6 @@ class Demuxer(object):
 
             h = Header(csid, m_time, m_size, m_type, m_msid)
 
-
             # fill header if cached entry was found earlier
             if c_h:
                 # TODO: check/warn header consistency (with the cached
@@ -255,7 +249,6 @@ class Demuxer(object):
                 else:
                     self.protocol.messageReceived(h, vecbuf.VecBuf(accbody))
 
-
 def _encode_basic_header(h_type, cs_id, time=None):
     if cs_id > 0x013f:          # 256 + 63
         base = _s_ext_csid.pack((h_type << 6) | 1, cs_id - 64)
@@ -268,7 +261,6 @@ def _encode_basic_header(h_type, cs_id, time=None):
         return base + _s_ulong_b.pack(time)
 
     return base
-
 
 def encode_full_header(cs_id, time, size, msg_type, ms_id):
     """Serialize an absolute (type 0) chunk header."""
@@ -329,7 +321,6 @@ def encode_comp_header(h_type, cs_id, time, size, msg_type, ms_id):
                                        msg_type) +
                 h4)
 
-
 DEFAULT_CHUNK_SIZE = 128
 
 class Chunker(object):
@@ -364,7 +355,6 @@ class Chunker(object):
                 chunk = min(to_send, self.chunk_size)
                 to_send -= chunk
                 yield header, body.read_seq(chunk)
-
 
 class SimpleChunkProducer(object):
     """A chunk producer, for use with the Muxer class, that does no

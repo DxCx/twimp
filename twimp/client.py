@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 import logging
 import time
 
@@ -35,18 +34,13 @@ LOG_CATEGORY = 'client'
 import twimp.log
 log = twimp.log.get_logger(LOG_CATEGORY)
 
-
 CLIENT_VERSION = 'TwiMMF/1.0 (compatible; FMSc/1.0)'
-
 
 class BaseClientProtocol(CallDispatchProtocol):
     is_client = True
 
-
 class BaseClientFactory(CallDispatchFactory, ClientFactory):
     protocol = BaseClientProtocol
-
-
 
 # connection failures:
 # before tcp connected:
@@ -59,7 +53,6 @@ class BaseClientFactory(CallDispatchFactory, ClientFactory):
 # after fully connected:
 #   -> app.connectionLost()
 #   -> factory.clientConnectionLost()
-
 
 class SimpleAppClientProtocol(BaseClientProtocol):
     def __init__(self):
@@ -222,7 +215,6 @@ class SimpleAppClientFactory(BaseClientFactory):
 
     def make_app(self, protocol):
         return self._app_factory(protocol, *self._app_args, **self._app_kwargs)
-
 
 class InvalidStreamState(ValueError):
     pass
@@ -399,7 +391,6 @@ class ClientStream(object):
     def write_video(self, ts, data):
         self.protocol.muxer.sendMessage(ts, chunks.MSG_VIDEO, self.id, data)
 
-
 class BaseClientApp(object):
     def __init__(self, protocol):
         self.protocol = protocol
@@ -441,7 +432,6 @@ class BaseClientApp(object):
         self.protocol.signalRemote(0, 'deleteStream', None, stream.id)
         # lose track of the stream if tracking...?
 
-
     ##
     # public, overridable app interface
 
@@ -460,7 +450,6 @@ class BaseClientApp(object):
     def connectionFailed(self, reason):
         pass
 
-
 def connect_client_factory(url, factoryFactory, *args, **kwargs):
     connect_params = dict(fpad=False) # no proxy, direct tcp/rtmp connection
     scheme, host, port, app = parse_rtmp_url(url)
@@ -469,7 +458,6 @@ def connect_client_factory(url, factoryFactory, *args, **kwargs):
 
     reactor.connectTCP(host, port, factory)
     return factory
-
 
 def simple_connect(url, *args, **kwargs):
     return connect_client_factory(url, SimpleAppClientFactory,

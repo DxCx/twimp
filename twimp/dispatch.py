@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 from collections import deque
 import logging
 import time
@@ -33,9 +32,7 @@ LOG_CATEGORY = 'dispatch'
 import twimp.log
 log = twimp.log.get_logger(LOG_CATEGORY)
 
-
 # defer.Deferred.debug = 1
-
 
 class CancellableCallQueue(object):
     def __init__(self, reactor=reactor):
@@ -65,7 +62,6 @@ class CancellableCallQueue(object):
         for key, clid  in remaining.iteritems():
             if clid.active():
                 clid.cancel()
-
 
 class DeferredTracker(object):
     init_trans_id = 1
@@ -103,7 +99,6 @@ class DeferredTracker(object):
 
     def reset(self):
         self._next_trans_id = {}
-
 
 class StatusEventTracker(object):
     def __init__(self):
@@ -157,7 +152,6 @@ class StatusEventTracker(object):
                     d.callback(info)
                 else:
                     d.errback(UnexpectedStatusError(info))
-
 
 class CommandDispatchProtocol(DispatchProtocol):
 
@@ -217,7 +211,6 @@ class CommandDispatchProtocol(DispatchProtocol):
         log.warning('unexpected _error: at %r, stream %r, trans %r, args: %r',
                     ts, ms_id, trans_id, args)
 
-
     def connectionLost(self, reason=protocol.connectionDone):
         self._cc_queue.cancel_all()
         pending_calls = list(self._call_tracker.iter_all())
@@ -266,7 +259,6 @@ class CommandDispatchProtocol(DispatchProtocol):
 class CommandDispatchFactory(DispatchFactory):
     protocol = CommandDispatchProtocol
 
-
 class EventDispatchProtocol(CommandDispatchProtocol):
     def __init__(self):
         CommandDispatchProtocol.__init__(self)
@@ -297,10 +289,8 @@ class EventDispatchProtocol(CommandDispatchProtocol):
 
         CommandDispatchProtocol.connectionLost(self, reason)
 
-
 class EventDispatchFactory(CommandDispatchFactory):
     protocol = EventDispatchProtocol
-
 
 class CallDispatchProtocol(EventDispatchProtocol):
     def __init__(self):
@@ -369,7 +359,6 @@ class CallDispatchProtocol(EventDispatchProtocol):
         # seems that we're just supposed to silently ignore the request
         log.warning('unknown method called: %s, args: %r', cmd, args)
         raise CallAbortedException('unknown command %r' % (cmd,))
-
 
 class CallDispatchFactory(EventDispatchFactory):
     protocol = CallDispatchProtocol

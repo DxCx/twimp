@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 RTMP_CHUNK_SIZE = 0x01
 RTMP_ABORT = 0x02
 RTMP_ACK = 0x03
@@ -32,7 +31,6 @@ RTMP_AGGREGATE = 0x16
 RTMP_DATA_AMF3 = 0x0f
 RTMP_SHARED_OBJ_AMF3 = 0x10
 RTMP_COMMAND_AMF3 = 0x11
-
 
 UCTRL_STREAM_BEGIN = 0x0
 UCTRL_STREAM_EOF = 0x1
@@ -70,7 +68,6 @@ VF_VP6 = 4
 VF_VP6_ALPHA = 5
 VF_SCREEN_2 = 6
 VF_H264 = 7
-
 
 ##
 # video, AAC and H264 frame types
