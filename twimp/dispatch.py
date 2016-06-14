@@ -36,9 +36,10 @@ log = twimp.log.get_logger(LOG_CATEGORY)
 # defer.Deferred.debug = 1
 
 class SharedObject(object):
-    def __init__(self, name):
+    def __init__(self, name, persistance):
         self._name = name
         self._readyd = defer.Deferred()
+        self._persistance = persistance
         self._dispatcher = {
             const.SO_EVENT_TYPE_CHANGE: self.onChange,
             const.SO_EVENT_TYPE_CLEAR: self.onClear,
@@ -81,6 +82,10 @@ class SharedObject(object):
     @property
     def readyd(self):
         return self._readyd
+
+    @property
+    def persistance(self):
+        return self._persistance
 
 class CancellableCallQueue(object):
     def __init__(self, reactor=reactor):
@@ -227,8 +232,9 @@ class CommandDispatchProtocol(DispatchProtocol):
             self.unknownSharedObject(ts, ms_id, obj_name, events)
             return
 
+        so = self._shared_objs[obj_name]
         for e in events:
-            self._shared_objs[obj_name].onEvent(e)
+            so.onEvent(e)
 
     def _handler_wrapper(self, handler, ts, ms_id, args):
         # wrap in try/except...?
@@ -253,7 +259,7 @@ class CommandDispatchProtocol(DispatchProtocol):
     def unknownCommandType(self, cmd, ts, msid, args):
         raise NotImplementedError('unknown command %r%r' % (cmd,
                                                             (ts, msid, args)))
-    def unknownSharedObject(ts, ms_id, obj_name, events):
+    def unknownSharedObject(self, ts, ms_id, obj_name, events):
         log.warning('unexpected shared object event: %s => %s' % (obj_name, events))
 
     def unexpectedCallResult(self, ts, ms_id, trans_id, args):
@@ -304,21 +310,40 @@ class CommandDispatchProtocol(DispatchProtocol):
         # similar to callRemote, except we don't expect any results
         return self._sendRemote(ms_id, cmd, args, kw, False)
 
+    @defer.inlineCallbacks
     def useSharedObject(self, ms_id, obj_name, persistance=False):
         if self._shared_objs.has_key(obj_name):
             raise SystemError("Shared object %s already in use" % obj_name)
 
-        flags='\x00\x00\x00\x00\x00\x00\x00\x00'
         events = [{'data': '', 'type': const.SO_EVENT_TYPE_USE}]
+        flags='\x00\x00\x00\x00\x00\x00\x00\x00'
         if persistance:
             flags = '\x00\x00\x00\x02\x00\x00\x00\x00'
         body = amf0.encode_so_update(obj_name, flags=flags, events=events)
-        so = SharedObject(obj_name)
+        so = SharedObject(obj_name, persistance)
         self._shared_objs[obj_name] = so
 
         ts = ms_time_wrapped(self.session_time())
-        self.muxer.sendMessage(ts, chunks.MSG_SO, ms_id, body)
-        return so.readyd
+        yield self.muxer.sendMessage(ts, chunks.MSG_SO, ms_id, body)
+        defer.returnValue((yield so.readyd))
+
+    @defer.inlineCallbacks
+    def releaseSharedObject(self, ms_id, obj_name):
+        if not self._shared_objs.has_key(obj_name):
+            raise SystemError("Shared object %s does not exists" % obj_name)
+
+        so = self._shared_objs[obj_name]
+        events = [{'data': '', 'type': const.SO_EVENT_TYPE_RELEASE}]
+        flags='\x00\x00\x00\x00\x00\x00\x00\x00'
+        if so.persistance:
+            flags = '\x00\x00\x00\x02\x00\x00\x00\x00'
+        body = amf0.encode_so_update(obj_name, flags=flags, events=events)
+        del self._shared_objs[obj_name]
+
+        ts = ms_time_wrapped(self.session_time())
+        yield self.muxer.sendMessage(ts, chunks.MSG_SO, ms_id, body)
+
+        defer.returnValue(None)
 
 class CommandDispatchFactory(DispatchFactory):
     protocol = CommandDispatchProtocol
