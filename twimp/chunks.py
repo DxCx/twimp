@@ -200,16 +200,9 @@ class Demuxer(object):
                     m_msid, = _s_ulong_l.unpack(s.read(4))
 
             if m_time == 0x00ffffff or m_time is None and m_time_ext:
-                print 'FUCKING EXTENDED mt:%s ext:%s size:%s a:%s csid:%s '\
-                        'htype:%s hs:%s' % (m_time, m_time_ext,
-                        m_size, a, csid, htype, head_size)
-#                import pdb; pdb.set_trace()
                 if len(s) < 4:
                     s = yield 4 # 4 bytes of "extended timestamp"
                 m_time, = _s_ulong_b.unpack(s.read(4))
-#                if m_size is not None:
-#                    m_size += 4
-                m_time = None
 
             h = Header(csid, m_time, m_size, m_type, m_msid)
 

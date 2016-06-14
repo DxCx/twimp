@@ -48,7 +48,7 @@ class CancellableCallQueue(object):
         self.pending[call_key] = clid
         return call_key, clid
 
-    def cancel(self, (call_key, clid)):
+    def cancel(self, call_key, clid):
         self.pending.pop(call_key, None)
         return clid.cancel()
 
