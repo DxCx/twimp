@@ -238,6 +238,10 @@ class DispatchProtocol(BaseProtocol):
         def object_args(header, body):
             decoded = amf0.decode_so_update(body)
             return header.abs_time, header.ms_id, decoded['obj_name'], decoded['events']
+        def object_args_amf3(header, body):
+            # Terminate the extra byte
+            body.read(1)
+            return object_args(header, body)
 
         # { type => (handler, make_args) }
         self.msg_dispatch = {
@@ -246,6 +250,7 @@ class DispatchProtocol(BaseProtocol):
             const.RTMP_DATA: (self.doMeta, amf_args),
             const.RTMP_COMMAND: (self.doCommand, amf_args),
             const.RTMP_SHARED_OBJ: (self.doSharedObj, object_args),
+            const.RTMP_SHARED_OBJ_AMF3: (self.doSharedObj, object_args_amf3),
             }
 
     def messageReceived(self, header, body):

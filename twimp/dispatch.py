@@ -35,6 +35,53 @@ log = twimp.log.get_logger(LOG_CATEGORY)
 
 # defer.Deferred.debug = 1
 
+class SharedObject(object):
+    def __init__(self, name):
+        self._name = name
+        self._readyd = defer.Deferred()
+        self._dispatcher = {
+            const.SO_EVENT_TYPE_CHANGE: self.onChange,
+            const.SO_EVENT_TYPE_CLEAR: self.onClear,
+            const.SO_EVENT_TYPE_MESSAGE: self.onMessage,
+            const.SO_EVENT_TYPE_DELETE: self.onDelete,
+            const.SO_EVENT_TYPE_USE_SUCCESS: self.onUseSuccess,
+        }
+
+    def onEvent(self, event):
+        log.debug("shared object %s event: %s" % (self.name, event))
+        handler = self._dispatcher.get(event['type'], None)
+        if handler is None:
+            return self.unhandledEvent(event)
+
+        return handler(event)
+
+    def unhandledEvent(self, event):
+        log.warning("SharedObject %s cannot parse event %s" % (self.name, event))
+
+    def onChange(self, event):
+        pass
+
+    def onClear(self, event):
+        pass
+
+    def onDelete(self, event):
+        pass
+
+    def onMessage(self, event):
+        pass
+
+    def onUseSuccess(self, event):
+        assert len(event['data']) == 0, "Event data of success must be empty"
+        self._readyd.callback(self)
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def readyd(self):
+        return self._readyd
+
 class CancellableCallQueue(object):
     def __init__(self, reactor=reactor):
         self.reactor = reactor
@@ -161,6 +208,7 @@ class CommandDispatchProtocol(DispatchProtocol):
 
         self._cc_queue = CancellableCallQueue()
         self._call_tracker = DeferredTracker()
+        self._shared_objs = dict()
 
     def doCommand(self, ts, ms_id, args):
         cmd = args[0]
@@ -175,10 +223,12 @@ class CommandDispatchProtocol(DispatchProtocol):
                                      ts, ms_id, args[1:])
 
     def doSharedObj(self, ts, ms_id, obj_name, events):
-        log.info('TODO: doSharedObj - CONT HERE')
-        log.info(obj_name)
-        log.info(events)
-        pass
+        if not self._shared_objs.has_key(obj_name):
+            self.unknownSharedObject(ts, ms_id, obj_name, events)
+            return
+
+        for e in events:
+            self._shared_objs[obj_name].onEvent(e)
 
     def _handler_wrapper(self, handler, ts, ms_id, args):
         # wrap in try/except...?
@@ -203,6 +253,8 @@ class CommandDispatchProtocol(DispatchProtocol):
     def unknownCommandType(self, cmd, ts, msid, args):
         raise NotImplementedError('unknown command %r%r' % (cmd,
                                                             (ts, msid, args)))
+    def unknownSharedObject(ts, ms_id, obj_name, events):
+        log.warning('unexpected shared object event: %s => %s' % (obj_name, events))
 
     def unexpectedCallResult(self, ts, ms_id, trans_id, args):
         log.warning('unexpected _result: at %r, stream %r, trans %r, args: %r',
@@ -252,13 +304,21 @@ class CommandDispatchProtocol(DispatchProtocol):
         # similar to callRemote, except we don't expect any results
         return self._sendRemote(ms_id, cmd, args, kw, False)
 
-    def useSharedObject(self, ms_id, name, persistance=False):
+    def useSharedObject(self, ms_id, obj_name, persistance=False):
+        if self._shared_objs.has_key(obj_name):
+            raise SystemError("Shared object %s already in use" % obj_name)
+
         flags='\x00\x00\x00\x00\x00\x00\x00\x00'
         events = [{'data': '', 'type': const.SO_EVENT_TYPE_USE}]
         if persistance:
             flags = '\x00\x00\x00\x02\x00\x00\x00\x00'
-        body = amf0.encode_so_update(name, flags=flags, events=events)
-        return self.muxer.sendMessage(0, chunks.MSG_SO, ms_id, body)
+        body = amf0.encode_so_update(obj_name, flags=flags, events=events)
+        so = SharedObject(obj_name)
+        self._shared_objs[obj_name] = so
+
+        ts = ms_time_wrapped(self.session_time())
+        self.muxer.sendMessage(ts, chunks.MSG_SO, ms_id, body)
+        return so.readyd
 
 class CommandDispatchFactory(DispatchFactory):
     protocol = CommandDispatchProtocol
