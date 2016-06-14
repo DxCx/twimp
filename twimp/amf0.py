@@ -276,6 +276,18 @@ def _decode_ecma_array(s):
     _decode_object_like(s, lambda k, v: ret.__setitem__(k, v))
     return ret
 
+def _decode_so_event_change_data(s):
+    ret = ECMAArray()
+    while len(s):
+        name = _decode_string(s)
+        if name == '':
+            if _decode_marker(s) != MARK_OBJECT_END:
+                raise DecoderError('Missing object end marker')
+            break
+        value = _decode_single(s, type_dict=object_decoders)
+        ret[name] = value
+    return ret
+
 def _decode_strict_array(s):
     length, = _s_ulong.unpack(s.read(4))
     return [_decode_single(s) for _ in xrange(length)]
@@ -381,7 +393,7 @@ def _decode_so_update(s):
         so_body_size = _s_ulong.unpack(s.read(4))[0]
         event['data'] = ''
         if so_body_size:
-            event['data'] = s.read(so_body_size)
+            event['data'] = VecBuf(s.read(so_body_size))
         events.append(event)
 
     return {'obj_name': obj_name, 'version': version, 'flags': flags, 'events': events}
@@ -557,6 +569,18 @@ def decode(data):
     """
     try:
         return _decode(data)
+    except VecBufEOB:
+        raise DecoderError('Incomplete encoded data')
+
+def decode_so_event_change_data(data):
+    """Decode AMF0-encoded buffer of data.
+
+    @type data: VecBuf
+
+    @returns: list of objects
+    """
+    try:
+        return _decode_so_event_change_data(data)
     except VecBufEOB:
         raise DecoderError('Incomplete encoded data')
 

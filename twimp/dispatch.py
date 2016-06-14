@@ -39,40 +39,62 @@ class SharedObject(object):
     def __init__(self, name, persistance):
         self._name = name
         self._readyd = defer.Deferred()
+        self._deleted = defer.Deferred()
+        self._changed = defer.Deferred()
         self._persistance = persistance
         self._dispatcher = {
-            const.SO_EVENT_TYPE_CHANGE: self.onChange,
+            const.SO_EVENT_TYPE_CHANGE: self.onChangeRaw,
             const.SO_EVENT_TYPE_CLEAR: self.onClear,
             const.SO_EVENT_TYPE_MESSAGE: self.onMessage,
-            const.SO_EVENT_TYPE_DELETE: self.onDelete,
+            const.SO_EVENT_TYPE_DELETE: self.onDeleteRaw,
             const.SO_EVENT_TYPE_USE_SUCCESS: self.onUseSuccess,
         }
 
     def onEvent(self, event):
-        log.debug("shared object %s event: %s" % (self.name, event))
+        #log.debug("shared object %s event: %s" % (self.name, event))
         handler = self._dispatcher.get(event['type'], None)
         if handler is None:
             return self.unhandledEvent(event)
 
-        return handler(event)
+        return handler(event['data'])
 
     def unhandledEvent(self, event):
         log.warning("SharedObject %s cannot parse event %s" % (self.name, event))
 
-    def onChange(self, event):
-        pass
+    def onChangeRaw(self, event):
+        try:
+            change_dict = amf0.decode_so_event_change_data(event)
+        except amf0.DecoderError as e:
+            log.warning("Failed to decode event data: %s" % e)
+            return
+
+        key, value = change_dict.items()[0]
+        return self.onChange(key, value)
+
+    def onChange(self, key_name, value):
+        log.debug("onChange called: %s=%s" % (key_name, value))
+        d, self._changed = self._changed, defer.Deferred()
+        d.callback((self._changed, key_name, value))
 
     def onClear(self, event):
-        pass
+        assert len(event) == 0, "Event data of clear must be empty"
+        # Nothing to do really.
 
-    def onDelete(self, event):
-        pass
+    def onDeleteRaw(self, event):
+        assert len(event) != 0, "Cannot call onDelete without data"
+        self.onDelete(amf0._decode_string(event))
+
+    def onDelete(self, key_name):
+        log.debug("onDelete called for %s" % key_name)
+        d, self._deleted = self._deleted, defer.Deferred()
+        d.callback((self._deleted, key_name))
 
     def onMessage(self, event):
+        # TODO: Handle if needed
         pass
 
     def onUseSuccess(self, event):
-        assert len(event['data']) == 0, "Event data of success must be empty"
+        assert len(event) == 0, "Event data of success must be empty"
         self._readyd.callback(self)
 
     @property
@@ -82,6 +104,14 @@ class SharedObject(object):
     @property
     def readyd(self):
         return self._readyd
+
+    @property
+    def deleted(self):
+        return self._deleted
+
+    @property
+    def changed(self):
+        return self._changed
 
     @property
     def persistance(self):
